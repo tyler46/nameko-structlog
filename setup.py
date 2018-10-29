@@ -19,7 +19,7 @@ setup(
     long_description=readme + '\n\n' + history,
     author='Spyros Markopoulos',
     author_email='mail.doctor46@gmail.com',
-    url='httsp://github.com/tyler46/nameko-structlog',
+    url='https://github.com/tyler46/nameko-structlog',
     include_package_data=True,
     packages=find_packages(include=['nameko_structlog']),
     install_requires=[
