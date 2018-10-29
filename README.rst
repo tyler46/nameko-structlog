@@ -15,20 +15,19 @@ Installation
 
 To install nameko-structlog, simply use pip.
 
-..code-block::bash
+.. code-block:: bash
 
    pip install nameko-structlog
    # to enable coloring during development
    pip install nameko-structlog[colors]
 
-   ...
 
 Usage
 -----
 
 Add Structlog log level to your nameko config file:
 
-..code-block:: yaml
+.. code-block:: yaml
 
    # config.yml
    STRUCTLOG:
@@ -40,7 +39,7 @@ Add Structlog log level to your nameko config file:
 
 Include the ``StructlogDependency`` dependency in your service class:
 
-..code-block:: python 
+.. code-block:: python 
 
    # service.py
    from nameko.rpc import rpc 
@@ -59,7 +58,7 @@ Include the ``StructlogDependency`` dependency in your service class:
 
 Run your service, providing the config file:
 
-..code-block:: shell
+.. code-block:: shell
 
    $ nameko run service --config config.yaml
 
