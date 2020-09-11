@@ -29,10 +29,10 @@ class StructlogDependency(DependencyProvider):
             return {**custom_data, **event_dict}
 
     def setup(self):
-        structlog_config = self.container.config.get('STRUCTLOG', {})
-        self.development_mode = structlog_config.get('DEVELOPMENT_MODE', False)
-        self.include_worker_name = structlog_config.get('WORKER_NAME', False)
-        self.unittesting = structlog_config.get('FOR_TESTING', False)
+        structlog_config = self.container.config.get("STRUCTLOG", {})
+        self.development_mode = structlog_config.get("DEVELOPMENT_MODE", False)
+        self.include_worker_name = structlog_config.get("WORKER_NAME", False)
+        self.unittesting = structlog_config.get("FOR_TESTING", False)
         self.custom_data = structlog_config.get("CUSTOM_DATA", {})
         self.logger_by_service_name = dict()
 
@@ -45,9 +45,7 @@ class StructlogDependency(DependencyProvider):
 
             if self.unittesting:
                 log_factory = structlog.ReturnLoggerFactory
-                chain = [
-                    structlog.dev.ConsoleRenderer(colors=False)
-                ]
+                chain = [structlog.dev.ConsoleRenderer(colors=False)]
             else:
                 log_factory = structlog.stdlib.LoggerFactory
 
@@ -56,15 +54,13 @@ class StructlogDependency(DependencyProvider):
                     structlog.stdlib.add_logger_name,
                     structlog.stdlib.add_log_level,
                     structlog.stdlib.PositionalArgumentsFormatter(),
-                    structlog.processors.TimeStamper(fmt='iso'),
+                    structlog.processors.TimeStamper(fmt="iso"),
                     structlog.processors.StackInfoRenderer(),
                     structlog.processors.format_exc_info,
                     structlog.processors.UnicodeDecoder(),
                 ]
                 if self.development_mode:
-                    chain.append(
-                        structlog.dev.ConsoleRenderer(colors=use_colors)
-                    )
+                    chain.append(structlog.dev.ConsoleRenderer(colors=use_colors))
                 else:
                     chain.extend(
                         [
