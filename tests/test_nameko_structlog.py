@@ -15,14 +15,13 @@ from nameko_structlog import StructlogDependency
 
 
 @pytest.fixture
-def config(rabbit_config):
-    config = rabbit_config.copy()
-    config.update({
+def config():
+
+    return {
         'STRUCTLOG': {
             'FOR_TESTING': True
         }
-    })
-    return config
+    }
 
 
 @pytest.fixture
