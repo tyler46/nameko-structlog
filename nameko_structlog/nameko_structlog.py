@@ -60,14 +60,18 @@ class StructlogDependency(DependencyProvider):
                     structlog.processors.StackInfoRenderer(),
                     structlog.processors.format_exc_info,
                     structlog.processors.UnicodeDecoder(),
-                    self.CustomDataProcessor(self.custom_data),
                 ]
                 if self.development_mode:
                     chain.append(
                         structlog.dev.ConsoleRenderer(colors=use_colors)
                     )
                 else:
-                    chain.append(structlog.processors.JSONRenderer(sort_keys=True))
+                    chain.extend(
+                        [
+                            structlog.processors.JSONRenderer(sort_keys=True),
+                            self.CustomDataProcessor(self.custom_data),
+                        ]
+                    )
 
             structlog.configure(
                 processors=chain,
@@ -77,13 +81,11 @@ class StructlogDependency(DependencyProvider):
                 cache_logger_on_first_use=True,
             )
 
-            if self.include_worker_name:
-                self.logger_by_service_name[service_name] = structlog.get_logger(service_name).new(
-                    entrypoint=worker_ctx.call_id, log_transaction_id=self.generate_uuid()
-                )  # noqa pylint: disable=line-too-long
-            else:
-                self.logger_by_service_name[service_name] = structlog.get_logger(service_name).new(
-                    log_transaction_id=self.generate_uuid()
-                )  # noqa pylint: disable=line-too-long
+            self.logger_by_service_name[service_name] = structlog.get_logger(service_name).new()
 
-        return self.logger_by_service_name[service_name]
+        initial_values = {"log_transaction_id": self.generate_uuid()}
+
+        if self.include_worker_name:
+            initial_values.update({"entrypoint": worker_ctx.call_id})
+
+        return self.logger_by_service_name[service_name].bind(**initial_values)
