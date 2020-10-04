@@ -53,7 +53,7 @@ class StructlogDependency(DependencyProvider):
                 if self.development_mode:
                     chain.append(structlog.dev.ConsoleRenderer(colors=use_colors))
                 else:
-                    chain.extend([structlog.processors.JSONRenderer(sort_keys=self.sort_keys)])
+                    chain.append(structlog.processors.JSONRenderer(sort_keys=self.sort_keys))
 
             structlog.configure(
                 processors=chain,
