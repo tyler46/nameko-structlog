@@ -14,7 +14,7 @@ with open('HISTORY.rst') as history_file:
 
 setup(
     name='nameko-structlog',
-    version='0.2.0',
+    version='0.2.1',
     description='Nameko extension exposing a structlog dependency injector',
     long_description=readme + '\n\n' + history,
     author='Spyros Markopoulos',
