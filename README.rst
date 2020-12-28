@@ -60,11 +60,11 @@ Add Structlog log level to your nameko config file:
       handlers: [console]
    ...
 
-Option `INCLUDE_WORKER_NAME` will add or not `worker_ctx.call_id` to
-every log entry. Option `INCLUDE_LOG_TRANSACTON_ID` will group all
-logs that refer to same nameko entrypoint, with a unique `log_transaction_id`.
+Option *INCLUDE_WORKER_NAME* will add or not *worker_ctx.call_id* to
+every log entry. Option *INCLUDE_LOG_TRANSACTON_ID* will group all
+logs that refer to same nameko entrypoint, with a unique *log_transaction_id*.
 Doing so may be useful to follow request/data flow on a log aggregation
-tool. Option `EXTRA_PARAMETERS` can contain any keys that you
+tool. Option *EXTRA_PARAMETERS* can contain any keys that you
 want to appear on every log entry.
 
 
