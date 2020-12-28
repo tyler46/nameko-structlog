@@ -32,7 +32,6 @@ setup(
             'pip==18.1',
             'bumpversion==0.5.3',
             'flake8==3.5.0',
-            'pylint>=1.9.3',
             'twine>=1.12.1',
             'wheel>=0.32.2',
         ],

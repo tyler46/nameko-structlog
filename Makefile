@@ -52,7 +52,6 @@ clean-test: ## remove test and coverage artifacts
 
 lint: ## check style with flake8
 	flake8 nameko_structlog tests
-	pylint nameko_structlog -E
 
 test: ## run tests quickly with the default Python
 	py.test

@@ -20,7 +20,9 @@ from nameko_structlog.constants import (
 
 class StructlogLogger:
 
-    def __init__(self, processor_name, options, extra_params, worker_ctx, include_worker_name=True):
+    def __init__(
+            self, processor_name, options, extra_params, worker_ctx, include_worker_name=True
+    ):
         self.processor = getattr(structlog.processors, processor_name)
 
         initial_values = {"log_transaction_id": self._transaction_id(), **extra_params}
