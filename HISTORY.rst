@@ -2,6 +2,11 @@
 History
 =======
 
+0.2.1 (2020-12-28)
+-------------------
+
+* Fix bug `#8 <https://github.com/tyler46/nameko-structlog/issues/8>`_.
+
 0.2.0 (2020-12-28)
 ------------------
 
