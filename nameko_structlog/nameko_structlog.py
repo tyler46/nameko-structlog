@@ -10,6 +10,7 @@ from nameko.extensions import DependencyProvider
 from nameko_structlog.constants import (
     JSON_PROCESSOR,
     INCLUDE_WORKER_NAME_KEY,
+    INCLUDE_LOG_TRANSACTION_ID_KEY,
     PARAMETERS_KEY,
     PROCESSOR_NAME_KEY,
     PROCESSOR_OPTIONS_KEY,
@@ -21,12 +22,19 @@ from nameko_structlog.constants import (
 class StructlogLogger:
 
     def __init__(
-            self, processor_name, options, extra_params, worker_ctx, include_worker_name=True
+        self,
+        processor_name,
+        options,
+        extra_params,
+        worker_ctx,
+        include_worker_name=True,
+        include_log_transaction_id=True,
     ):
         self.processor = getattr(structlog.processors, processor_name)
 
         initial_values = extra_params.copy()
-        initial_values.update({"log_transaction_id": self._transaction_id})
+        if include_log_transaction_id:
+            initial_values.update({"log_transaction_id": self._transaction_id()})
         if include_worker_name:
             initial_values.update({"entrypoint": worker_ctx.call_id})
 
@@ -77,6 +85,9 @@ class StructlogDependency(DependencyProvider):
 
         self.processor_options = structlog_config.get(PROCESSOR_OPTIONS_KEY, {})
         self.include_worker_name = structlog_config.get(INCLUDE_WORKER_NAME_KEY, True)
+        self.include_log_transaction_id = structlog_config.get(
+            INCLUDE_LOG_TRANSACTION_ID_KEY, True
+        )
         self.extra_params = structlog_config.get(PARAMETERS_KEY, {})
 
     def get_dependency(self, worker_ctx):
@@ -86,4 +97,5 @@ class StructlogDependency(DependencyProvider):
             self.extra_params,
             worker_ctx,
             self.include_worker_name,
+            self.include_log_transaction_id,
         ).get_logger()
