@@ -9,6 +9,12 @@ Structlog as nameko extension
 
 
 Extension for `nameko <https://www.nameko.io>`_ that replaces python logging module with structlog.
+The idea behind this module is to use `JSONRenderer <https://www.structlog.org/en/stable/api.html#structlog.processors.JSONRenderer>`_
+to be able to use advanced log aggregation and analysis tools like `Logstash <https://www.elastic.co/products/logstash>`_.
+
+Apart from JSONRenderer structlog processor, it's also supported `KeyValueRenderer <https://www.structlog.org/en/stable/api.html#structlog.processors.KeyValueRenderer>`_
+processor.
+
 
 Installation
 ------------
@@ -18,8 +24,6 @@ To install nameko-structlog, simply use pip.
 .. code-block:: bash
 
    pip install nameko-structlog
-   # to enable coloring during development
-   pip install nameko-structlog[colors]
 
 
 Usage
@@ -29,17 +33,33 @@ Add Structlog log level to your nameko config file:
 
 .. code-block:: yaml
 
-   # config.yml
+   # config.yml when using JSONRenderer
    STRUCTLOG:
-      DEVELOPMENT_MODE: ${DEV:false}
-      WORKER_NAME: ${WORKER_NAME:false}
-      SORT_KEYS: ${SORT_KEYS:true}
-      CUSTOM_KEYS:
-         service_name: logger
+      INCLUDE_WORKER_NAME: ${INCLUDE_WORKER_NAME:true}
+      PROCESSOR_NAME: JSONRenderer
+      PROCESSOR_OPTIONS:
+        sort_keys: true
+      EXTRA_PARAMETERS:
+         pin: 1234
+         env: dev
+
+  LOGGING:
+    version: 1
+    formatters:
+      simple:
+        format: "%(message)s"
+
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: simple
+
+    root:
+      level: DEBUG
+      handlers: [console]
    ...
 
-CUSTOM_DATA: can contain any key that you want to use in log.
-
+EXTRA_PARAMETERS: can contain any keys that you want to appear on every log entry.
 
 
 Include the ``StructlogDependency`` dependency in your service class:
@@ -58,7 +78,7 @@ Include the ``StructlogDependency`` dependency in your service class:
 
       @rpc 
       def my_method(self, name):
-         self.log.info(message="Your name is {}".format(name), type="greeting")
+         self.log.info(message=f"Your name is {name}", type="greeting")
 
 
 Run your service, providing the config file:
@@ -69,7 +89,7 @@ Run your service, providing the config file:
 
    $ nameko shell --config config.yaml
    >>> n.rpc.demo.my_method("Alice")
-   {"level": "info", "log_transaction_id": "b2cd5506-339e-4e59-9a14-a3cd7548bfe5", "logger": "demo", "message": "Your name is Alice", "service_name": "logger", "timestamp": "2020-09-27T11:24:30.379918Z", "type": "greeting"}
+   {"level": "info", "log_transaction_id": "b2cd5506-339e-4e59-9a14-a3cd7548bfe5", "logger": "demo", "env": "dev", message": "Your name is Alice", "pin": "1234", "timestamp": "2020-09-27T11:24:30.379918Z", "type": "greeting"}
 
 
 Credits
