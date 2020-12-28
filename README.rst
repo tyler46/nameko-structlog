@@ -36,6 +36,7 @@ Add Structlog log level to your nameko config file:
    # config.yml when using JSONRenderer
    STRUCTLOG:
       INCLUDE_WORKER_NAME: ${INCLUDE_WORKER_NAME:true}
+      INCLUDE_LOG_TRANSACTON_ID: true
       PROCESSOR_NAME: JSONRenderer
       PROCESSOR_OPTIONS:
         sort_keys: true
@@ -59,7 +60,12 @@ Add Structlog log level to your nameko config file:
       handlers: [console]
    ...
 
-EXTRA_PARAMETERS: can contain any keys that you want to appear on every log entry.
+Option `INCLUDE_WORKER_NAME` will add or not `worker_ctx.call_id` to
+every log entry. Option `INCLUDE_LOG_TRANSACTON_ID` will group all
+logs that refer to same nameko entrypoint, with a unique `log_transaction_id`.
+Doing so may be useful to follow request/data flow on a log aggregation
+tool. Option `EXTRA_PARAMETERS` can contain any keys that you
+want to appear on every log entry.
 
 
 Include the ``StructlogDependency`` dependency in your service class:
