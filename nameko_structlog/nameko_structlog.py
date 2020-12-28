@@ -25,7 +25,8 @@ class StructlogLogger:
     ):
         self.processor = getattr(structlog.processors, processor_name)
 
-        initial_values = {"log_transaction_id": self._transaction_id(), **extra_params}
+        initial_values = extra_params.copy()
+        initial_values.update({"log_transaction_id": self._transaction_id})
         if include_worker_name:
             initial_values.update({"entrypoint": worker_ctx.call_id})
 
@@ -68,7 +69,10 @@ class StructlogDependency(DependencyProvider):
         self.processor_name = structlog_config.get(PROCESSOR_NAME_KEY, JSON_PROCESSOR)
         if self.processor_name not in SUPPORTED_PROCESSORS:
             raise ConfigurationError(
-                f"Invalid `{PROCESSOR_NAME_KEY}` provided. Valid ones are: {SUPPORTED_PROCESSORS}."
+                "Invalid `{processor_key}` provided. Valid ones are: {supported}.".format(
+                    processor_key=PROCESSOR_NAME_KEY,
+                    supported=SUPPORTED_PROCESSORS,
+                )
             )
 
         self.processor_options = structlog_config.get(PROCESSOR_OPTIONS_KEY, {})
