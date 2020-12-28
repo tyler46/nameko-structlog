@@ -3,49 +3,46 @@
 
 """Tests for `nameko_structlog` package."""
 
+from unittest.mock import MagicMock, call
 
-import pytest
-
-from nameko.rpc import rpc
-from nameko.testing.services import (
-    entrypoint_hook,
-    entrypoint_waiter,
-    get_extension,
-)
-
-from nameko_structlog import StructlogDependency
+from nameko.testing.services import entrypoint_hook
+import structlog
 
 
-@pytest.fixture
-def config():
+class TestingStructlogProcessor:
+    """
+    Testing StuctlogProcessor that make use of `ReturnLogger`.
+    """
+    def __init__(self, **kwargs):
+        pass
 
-    return {"STRUCTLOG": {"FOR_TESTING": True}}
+    def get_logger(self):
+        structlog.configure(
+            processors=[],
+            context_class=structlog.threadlocal.wrap_dict(dict),
+            logger_factory=structlog.ReturnLoggerFactory(),
+            wrapper_class=structlog.stdlib.BoundLogger,
+            cache_logger_on_first_use=True,
+        )
 
-
-@pytest.fixture
-def service_cls():
-    class Service(object):
-        name = "demo"
-
-        log = StructlogDependency()
-
-        @rpc
-        def foo(self):
-            self.log.info("bar")  # pylint: disable=no-member
-            return "OK"
-
-    return Service
+        return structlog.get_logger().new()
 
 
-def test_structlog_setup(container_factory, service_cls, config):
-    container = container_factory(service_cls, config)
-    container.start()
+def test_structlog_depedency(greeting_service, greeting_rpc):
+    greeting_rpc.log = TestingStructlogProcessor().get_logger()
 
-    struct_log = get_extension(container, StructlogDependency)
+    with entrypoint_hook(greeting_service.container, "greet") as greet:
+        assert greet() == "Hi"
 
-    with entrypoint_hook(container, "foo") as foo:
-        with entrypoint_waiter(container, "foo"):
-            assert foo() == "OK"
-            # StructlogDependency returns a structlog logger per service name
-            service_logger = struct_log.logger_by_service_name["demo"]
-            assert "bar" == service_logger.info("bar")
+        assert greeting_rpc.log.info("bar") == ((), {"event": "bar"})
+
+
+def test_strcutlog_logger(greeting_service, greeting_rpc):
+    greeting_rpc.log = MagicMock(name="log")
+    greeting_rpc.log.info = MagicMock(name="info")
+    greeting_rpc.log.info.return_value = TestingStructlogProcessor().get_logger()
+
+    greeting_rpc.log.info("bar")
+
+    assert greeting_rpc.log.info.call_args_list == [call("bar")]
+    assert greeting_rpc.log.info.called_once()

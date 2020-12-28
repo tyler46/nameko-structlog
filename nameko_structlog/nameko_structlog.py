@@ -3,71 +3,81 @@ Nameko Structlog Dependency Provider.
 """
 import uuid
 
+import structlog
+from nameko.exceptions import ConfigurationError
 from nameko.extensions import DependencyProvider
 
-import structlog
+from nameko_structlog.constants import (
+    JSON_PROCESSOR,
+    INCLUDE_WORKER_NAME_KEY,
+    PARAMETERS_KEY,
+    PROCESSOR_NAME_KEY,
+    PROCESSOR_OPTIONS_KEY,
+    STRUCTLOG_CONFIG_KEY,
+    SUPPORTED_PROCESSORS,
+)
 
-try:
-    import colorama  # noqa pylint: disable=W0611
-except ImportError:
-    use_colors = False
-else:
-    use_colors = True
+
+class StructlogLogger:
+
+    def __init__(self, processor_name, options, extra_params, worker_ctx, include_worker_name=True):
+        self.processor = getattr(structlog.processors, processor_name)
+
+        initial_values = {"log_transaction_id": self._transaction_id(), **extra_params}
+        if include_worker_name:
+            initial_values.update({"entrypoint": worker_ctx.call_id})
+
+        self.initial_values = initial_values
+        self.service_name = worker_ctx.service_name
+
+        self.chain = [
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.processors.UnicodeDecoder(),
+            self.processor(**options),
+        ]
+
+    def _transaction_id(self):
+        return str(uuid.uuid4())
+
+    def get_logger(self):
+        structlog.configure(
+            processors=self.chain,
+            context_class=structlog.threadlocal.wrap_dict(dict),
+            logger_factory=structlog.stdlib.LoggerFactory(),
+            wrapper_class=structlog.stdlib.BoundLogger,
+            cache_logger_on_first_use=True,
+        )
+
+        logger = structlog.get_logger(self.service_name).new()
+        return logger.bind(**self.initial_values)
 
 
 class StructlogDependency(DependencyProvider):
     """Dependency Provider of Structlog."""
 
     def setup(self):
-        structlog_config = self.container.config.get("STRUCTLOG", {})
-        self.development_mode = structlog_config.get("DEVELOPMENT_MODE", False)
-        self.include_worker_name = structlog_config.get("WORKER_NAME", False)
-        self.unittesting = structlog_config.get("FOR_TESTING", False)
-        self.custom_keys = structlog_config.get("CUSTOM_KEYS", {})
-        self.sort_keys = structlog_config.get("SORT_KEYS", True)
-        self.logger_by_service_name = dict()
-
-    def generate_uuid(self):
-        return str(uuid.uuid4())
-
-    def get_dependency(self, worker_ctx):
-        service_name = worker_ctx.service_name
-        if not self.logger_by_service_name.get(service_name):
-
-            if self.unittesting:
-                log_factory = structlog.ReturnLoggerFactory
-                chain = [structlog.dev.ConsoleRenderer(colors=False)]
-            else:
-                log_factory = structlog.stdlib.LoggerFactory
-
-                chain = [
-                    structlog.stdlib.filter_by_level,
-                    structlog.stdlib.add_logger_name,
-                    structlog.stdlib.add_log_level,
-                    structlog.stdlib.PositionalArgumentsFormatter(),
-                    structlog.processors.TimeStamper(fmt="iso"),
-                    structlog.processors.StackInfoRenderer(),
-                    structlog.processors.format_exc_info,
-                    structlog.processors.UnicodeDecoder(),
-                ]
-                if self.development_mode:
-                    chain.append(structlog.dev.ConsoleRenderer(colors=use_colors))
-                else:
-                    chain.append(structlog.processors.JSONRenderer(sort_keys=self.sort_keys))
-
-            structlog.configure(
-                processors=chain,
-                context_class=structlog.threadlocal.wrap_dict(dict),
-                logger_factory=log_factory(),
-                wrapper_class=structlog.stdlib.BoundLogger,
-                cache_logger_on_first_use=True,
+        structlog_config = self.container.config.get(STRUCTLOG_CONFIG_KEY, {})
+        self.processor_name = structlog_config.get(PROCESSOR_NAME_KEY, JSON_PROCESSOR)
+        if self.processor_name not in SUPPORTED_PROCESSORS:
+            raise ConfigurationError(
+                f"Invalid `{PROCESSOR_NAME_KEY}` provided. Valid ones are: {SUPPORTED_PROCESSORS}."
             )
 
-            self.logger_by_service_name[service_name] = structlog.get_logger(service_name).new()
+        self.processor_options = structlog_config.get(PROCESSOR_OPTIONS_KEY, {})
+        self.include_worker_name = structlog_config.get(INCLUDE_WORKER_NAME_KEY, True)
+        self.extra_params = structlog_config.get(PARAMETERS_KEY, {})
 
-        initial_values = {"log_transaction_id": self.generate_uuid(), **self.custom_keys}
-
-        if self.include_worker_name:
-            initial_values.update({"entrypoint": worker_ctx.call_id})
-
-        return self.logger_by_service_name[service_name].bind(**initial_values)
+    def get_dependency(self, worker_ctx):
+        return StructlogLogger(
+            self.processor_name,
+            self.processor_options,
+            self.extra_params,
+            worker_ctx,
+            self.include_worker_name,
+        ).get_logger()
