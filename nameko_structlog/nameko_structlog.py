@@ -57,13 +57,14 @@ class StructlogLogger:
         return str(uuid.uuid4())
 
     def get_logger(self):
-        structlog.configure(
-            processors=self.chain,
-            context_class=structlog.threadlocal.wrap_dict(dict),
-            logger_factory=structlog.stdlib.LoggerFactory(),
-            wrapper_class=structlog.stdlib.BoundLogger,
-            cache_logger_on_first_use=True,
-        )
+        if not structlog.is_configured():
+            structlog.configure(
+                processors=self.chain,
+                context_class=structlog.threadlocal.wrap_dict(dict),
+                logger_factory=structlog.stdlib.LoggerFactory(),
+                wrapper_class=structlog.stdlib.BoundLogger,
+                cache_logger_on_first_use=True,
+            )
 
         logger = structlog.get_logger(self.service_name).new()
         return logger.bind(**self.initial_values)
